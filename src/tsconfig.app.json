@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/app",
+    "baseUrl": "./",
+    "module": "CommonJS",
+    "types": [ ],
+    "target": "ES2017"
+  },
+  "exclude": [
+    "test.ts"
+  ],
+  "compileOnSave": true,
+  "include": [
+    "**/*_test.ts",
+    "httpserver.ts"
+  ]
+}

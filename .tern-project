@@ -1,0 +1,21 @@
+{
+  "plugins": {
+    "guess-types": {
+      
+    },
+    "node": {
+      
+    },
+    "jasmine": {
+      
+    },
+    "node-express": {
+      
+    }
+  },
+  "libs": [
+    "ecma5",
+    "browser"
+  ],
+  "ecmaVersion": 6
+}
