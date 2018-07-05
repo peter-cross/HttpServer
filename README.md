@@ -31,6 +31,10 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 
 Run: > node out-tsc/app/httpserver.js
 
+## To start Http Mongo Server
+
+Run: > node out-tsc/app/httpmongoserver.js
+
 ## To test Http Server from server side
 
 Run: > jasmine --random=false out-tsc/app/httpserver_test.js

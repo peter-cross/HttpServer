@@ -62,7 +62,7 @@ export class HttpServer
         this.app.get( '/retrieverecipes', this.retrieveAllRecipes )
         this.app.get( '/deleterecipe/:recipeIdx', this.deleteRecipe )
         this.app.post( '/addrecipe', this.addRecipe )
-        this.app.post( '/changerecipe/:recipeIdx', this.changeRecipe )
+        this.app.post( '/updaterecipe/:recipeIdx', this.updateRecipe )
         
         this.app.get( '/fridgecontent', this.fridgeContent )
         this.app.get( '/additemqty/:itemIdx/:qty', this.addItemQty )
@@ -262,9 +262,9 @@ export class HttpServer
     }
     
     /*
-     * Method for server response on request to change recipe
+     * Method for server response on request to update recipe
      */
-    changeRecipe( request: any, response: any )
+    updateRecipe( request: any, response: any )
     {
         response.header( "Content-Type", "application/json" )
         

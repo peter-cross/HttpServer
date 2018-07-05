@@ -33,7 +33,12 @@ export class Item
     {
         this.name = nm
         this.quantity = qty
-    }   
+    } 
+      
+    static clone( itm: any ): Item
+    {
+        return new Item( itm.name, Number(itm.quantity) )
+    }
 }
 
 export class Ingredient extends Item

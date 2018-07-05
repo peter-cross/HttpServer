@@ -34,6 +34,9 @@ class Item {
         this.name = nm;
         this.quantity = qty;
     }
+    static clone(itm) {
+        return new Item(itm.name, Number(itm.quantity));
+    }
 }
 exports.Item = Item;
 class Ingredient extends Item {

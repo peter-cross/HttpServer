@@ -47,7 +47,7 @@ class HttpServer {
         this.app.get('/retrieverecipes', this.retrieveAllRecipes);
         this.app.get('/deleterecipe/:recipeIdx', this.deleteRecipe);
         this.app.post('/addrecipe', this.addRecipe);
-        this.app.post('/changerecipe/:recipeIdx', this.changeRecipe);
+        this.app.post('/updaterecipe/:recipeIdx', this.updateRecipe);
         this.app.get('/fridgecontent', this.fridgeContent);
         this.app.get('/additemqty/:itemIdx/:qty', this.addItemQty);
         this.app.get('/removeitemqty/:itemIdx/:qty', this.removeItemQty);
@@ -191,9 +191,9 @@ class HttpServer {
         }
     }
     /*
-     * Method for server response on request to change recipe
+     * Method for server response on request to update recipe
      */
-    changeRecipe(request, response) {
+    updateRecipe(request, response) {
         response.header("Content-Type", "application/json");
         try {
             let idx = request.params.recipeIdx;
