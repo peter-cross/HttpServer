@@ -1,17 +1,22 @@
 "use strict";
 /** Program Name : Lab Project
  ** Name : Peter Cross
- ** Date : July 5, 2018
+ ** Date : July 11, 2018
  ** Lab : 7
  ** Course : CPSC2261
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_component_1 = require("./app/core/core.component");
 const mongoDb = require("mongodb");
-const mongoClient = mongoDb.MongoClient;
-const mongoUrl = 'mongodb://localhost:27017';
-const options = { useNewUrlParser: true };
-const dbName = 'angularfridge';
+const MONGO_URL = 'mongodb://localhost:27017';
+const DB_NAME = 'angularfridge';
+const OPTIONS = { useNewUrlParser: true };
+// Mongo Client object
+let mongoClient = mongoDb.MongoClient;
+// Array of fridge items
+let contents = new Array();
+// Array of recipes
+let recipes = new Array();
 /*
  * Class for interface methods to Mongo DB
  */
@@ -21,38 +26,83 @@ class MongoInterface {
         this.mongoCollections = new Object();
     }
     /*
+     * Initializes interface to access Mongo DB
+     */
+    initMongo() {
+        // Initialize fridge items
+        // Set 2nd argument to true if you need to reset collection of Items
+        this.initItems(this.displayArrayOfItems, true)
+            .catch(error => console.log('Could not initialize Items Collection of Mongo DB \n' + error));
+        // Initialize recipes
+        // Set 2nd argument to true if you need to reset collection of Recipes
+        this.initRecipes(this.displayArrayOfRecipes, true)
+            .catch(error => console.log('Could not initialize Recipes Collection of Mongo DB \n' + error));
+    }
+    /*
      * Initializes Items collection in DB
      */
-    initItems() {
+    initItems(displayCallback, reset = false) {
         let itemsCollection = this.getItemsCollection();
-        // Uncomment if you need to reset Items Collection to initial example
-        //this.deleteAllCollection( itemsCollection )
-        itemsCollection
-            .then(result => result.find({})
-            .toArray((err, arr) => {
-            if (err)
-                return;
-            if (arr.length == 0)
-                this.insertExampleItems();
-        }));
-        return itemsCollection;
+        if (reset)
+            return this.deleteAllCollection(itemsCollection)
+                .then(result => {
+                result.find({})
+                    .toArray((err, arr) => {
+                    if (err) {
+                        console.log(err);
+                        return;
+                    }
+                    this.insertExampleItems(displayCallback);
+                    console.log('All Items collection deleted and added example items');
+                });
+            });
+        else
+            return itemsCollection.then(result => {
+                result.find({})
+                    .toArray((err, arr) => {
+                    if (err) {
+                        console.log(err);
+                        return;
+                    }
+                    if (arr.length == 0)
+                        this.insertExampleItems(displayCallback);
+                    else
+                        displayCallback(result);
+                });
+            });
     }
     /*
      * Initializes Recipes collection in DB
      */
-    initRecipes() {
+    initRecipes(displayCallback, reset = false) {
         let recipesCollection = this.getRecipesCollection();
-        // Uncomment if you need to reset Recipes Collection to initial example
-        //this.deleteAllCollection( recipesCollection )
-        recipesCollection
-            .then(result => result.find({})
-            .toArray((err, arr) => {
-            if (err)
-                return;
-            if (arr.length == 0)
-                this.insertExampleRecipes();
-        }));
-        return recipesCollection;
+        if (reset)
+            return this.deleteAllCollection(recipesCollection)
+                .then(result => {
+                result.find({})
+                    .toArray((err, arr) => {
+                    if (err) {
+                        console.log(err);
+                        return;
+                    }
+                    this.insertExampleRecipes(displayCallback);
+                    console.log('All Recipes collection deleted and added example recipes');
+                });
+            });
+        else
+            return recipesCollection.then(result => {
+                result.find({})
+                    .toArray((err, arr) => {
+                    if (err) {
+                        console.log(err);
+                        return;
+                    }
+                    if (arr.length == 0)
+                        this.insertExampleRecipes(displayCallback);
+                    else
+                        displayCallback(result);
+                });
+            });
     }
     /*
      * Displays in console array of Items
@@ -62,6 +112,7 @@ class MongoInterface {
             .toArray((err, arr) => {
             if (err)
                 return;
+            contents = arr;
             console.log('\nArray of Items:');
             for (let i = 0; i < arr.length; i++)
                 console.log('Idx: \t' + i + '\t name: ' + arr[i].name + '\t quantity: ' + arr[i].quantity);
@@ -75,6 +126,7 @@ class MongoInterface {
             .toArray((err, arr) => {
             if (err)
                 return;
+            recipes = arr;
             console.log('\nArray of Recipes:');
             for (let i = 0; i < arr.length; i++)
                 console.log('Idx: \t' + i + '\t name: ' + arr[i].name + '\t Est.time: ' + arr[i].estimatedTime);
@@ -95,18 +147,18 @@ class MongoInterface {
     /*
      * Inserts example items to Items collection
      */
-    insertExampleItems() {
+    insertExampleItems(callback) {
         let items = ['Item 1', 'Item 2', 'Item 3', 'Item 4'];
         let qtys = [10, 20, 30, 40];
         let itemsArr = new Array();
         for (let i = 0; i < items.length; i++)
             itemsArr.push(new core_component_1.Item(items[i], qtys[i]));
-        this.insertItems(itemsArr);
+        this.insertItems(itemsArr, callback);
     }
     /*
      * Inserts example recipes to Recipes collection
      */
-    insertExampleRecipes() {
+    insertExampleRecipes(callback) {
         let ingrName = ['Item 1', 'Item 2', 'Item 3', 'Item 4'];
         let ingrQty = [11, 22, 33, 44];
         let ingr1 = new core_component_1.Ingredient(ingrName[0], ingrQty[0]);
@@ -126,7 +178,7 @@ class MongoInterface {
         let time3 = 40;
         let recipe3 = new core_component_1.Recipe("Recipe 3", ingrs3, instrs3, time3);
         let recipesArr = [recipe1, recipe2, recipe3];
-        this.insertRecipes(recipesArr);
+        this.insertRecipes(recipesArr, callback);
     }
     /*
      * Gets Mongo collection specified by name
@@ -151,142 +203,178 @@ class MongoInterface {
     connectToDB() {
         if (this.db)
             return this.db;
-        return this.db = new Promise((onSuccess, onError) => mongoClient.connect(mongoUrl, (err, client) => {
+        return this.db = new Promise((onSuccess, onError) => mongoClient.connect(MONGO_URL, OPTIONS, (err, client) => {
             if (err) {
                 console.log('Error connecting to Mongo DB');
                 onError(err);
             }
             else {
                 console.log('Successfully connected to Mongo DB');
-                onSuccess(client.db(dbName));
+                onSuccess(client.db(DB_NAME));
             }
         }));
     }
     /*
      * Inserts single item into Items collection
      */
-    insertItem(item) {
+    addItem(itm, response) {
+        console.log('\nAdding New Item:');
+        console.log(itm.name);
         let collection = this.getItemsCollection();
-        return this.insertCollectionElement(item, collection);
+        let callback = array => response.send(contents = array);
+        this.insertCollectionElement(itm, collection, callback)
+            .then(ok => console.log('New Item added successfully\n'))
+            .catch(error => console.log(error));
     }
     /*
      * Removes single item from Items collection
      */
-    removeItem(item) {
+    deleteItem(idx, response) {
+        let itm = contents[idx];
+        console.log('\nDeleting Item:');
+        console.log(itm.name);
         let collection = this.getItemsCollection();
-        return this.deleteCollectionElement(item, collection);
+        let callback = array => response.json(contents = array);
+        this.deleteCollectionElement({ _id: itm._id }, collection, callback)
+            .then(ok => console.log('Item deleted successfully\n'))
+            .catch(error => console.log(error));
     }
     /*
-     * Updates single item in Items collection
+     * Updates single item quantity in Items collection
      */
-    updateItem(item, newOne) {
+    updateItemQty(idx, newQty, response) {
+        let itm = contents[idx];
+        let newOne = new core_component_1.Item(itm.name, newQty);
+        console.log('\nUpdating Item quantity:');
+        console.log(itm.name);
         let collection = this.getItemsCollection();
-        return this.updateCollectionElement(item, newOne, collection);
+        let callback = array => {
+            contents = array;
+            response.json(contents[idx].quantity);
+        };
+        this.updateCollectionElement({ _id: itm._id }, newOne, collection, callback)
+            .then(ok => console.log('Item quantity updated successfully\n'))
+            .catch(error => console.log(error));
     }
     /*
      * Inserts single recipe into Recipes collection
      */
-    insertRecipe(recipe) {
+    addRecipe(rcp, response) {
+        console.log('\nAdding New Recipe:');
+        console.log(rcp.name);
         let collection = this.getRecipesCollection();
-        return this.insertCollectionElement(recipe, collection);
+        let callback = array => response.send(recipes = array);
+        this.insertCollectionElement(rcp, collection, callback)
+            .then(ok => console.log('New Recipe added successfully\n'))
+            .catch(error => console.log(error));
     }
     /*
      * Removes single recipe from Recipes collection
      */
-    removeRecipe(recipe) {
+    deleteRecipe(idx, response) {
+        let rcp = recipes[idx];
+        console.log('\nDeleting Recipe:');
+        console.log(rcp.name);
         let collection = this.getRecipesCollection();
-        return this.deleteCollectionElement(recipe, collection);
+        let callback = array => response.json(recipes = array);
+        this.deleteCollectionElement({ _id: rcp._id }, collection, callback)
+            .then(ok => console.log('Recipe deleted successfully\n'))
+            .catch(error => console.log(error));
     }
     /*
      * Updates single recipe in Recipes collection
      */
-    updateRecipe(recipe, newOne) {
+    updateRecipe(idx, newOne, response) {
+        let rcp = recipes[idx];
+        console.log('\nUpdating Recipe:');
+        console.log(rcp.name);
         let collection = this.getRecipesCollection();
-        return this.updateCollectionElement(recipe, newOne, collection);
+        let callback = array => response.send(recipes = array);
+        this.updateCollectionElement({ _id: rcp._id }, newOne, collection, callback)
+            .then(ok => console.log('Recipe updated successfully\n'))
+            .catch(error => console.log(error));
     }
     /*
      * Inserts array of items into Items collection
      */
-    insertItems(items) {
+    insertItems(items, callback) {
         let collection = this.getItemsCollection();
-        collection = this.insertCollectionElements(items, collection);
-        collection.then(result => result.find({})
+        return this.insertCollectionElements(items, collection)
+            .then(result => result.find({})
             .toArray((err, arr) => {
             if (err) {
                 console.log('Error adding new elements to collection of Items' + err);
                 return;
             }
-            console.log('\nNew Array of Items:');
-            for (let i = 0; i < arr.length; i++)
-                console.log('Idx: \t' + i + '\t name: ' + arr[i].name + '\t quantity: ' + arr[i].quantity);
+            callback(result);
         }));
-        return collection;
     }
     /*
      * Inserts array of recipes into Recipes collection
      */
-    insertRecipes(recipes) {
+    insertRecipes(recipesArray, callback) {
         let collection = this.getRecipesCollection();
-        collection = this.insertCollectionElements(recipes, collection);
-        collection.then(result => result.find({})
+        return this.insertCollectionElements(recipesArray, collection)
+            .then(result => result.find({})
             .toArray((err, arr) => {
             if (err) {
                 console.log('Error adding new elements to collection of Recipes' + err);
                 return;
             }
-            console.log('\nNew Array of Recipes:');
-            for (let i = 0; i < arr.length; i++)
-                console.log('Idx: \t' + i + '\t name: ' + arr[i].name + '\t Est.time: ' + arr[i].estimatedTime);
+            callback(result);
         }));
-        return collection;
     }
     /*
      * Inserts new element into collection
      */
-    insertCollectionElement(element, collection) {
+    insertCollectionElement(element, collection, callback) {
         return collection.then(result => new Promise((onSuccess, onError) => result.insertOne(element, (err, result) => {
             if (err) {
-                console.log('Error inserting new collection element to Mongo DB');
+                console.log('\nError inserting new collection element to Mongo DB');
                 onError(err);
             }
             else
                 onSuccess(result);
         })))
             .then(result => {
-            console.log('Result of inserting new collection element: ');
-            console.log(result.ops);
+            console.log('\nResult of inserting new collection element: ');
+            let elmt = result.ops[0];
+            console.log('_id: ' + elmt._id + '\t name: \'' + elmt.name + '\'');
+            this.getAllCollectionArray(collection, callback);
         });
     }
     /*
      * Deletes specified by filter element from collection
      */
-    deleteCollectionElement(element, collection) {
+    deleteCollectionElement(element, collection, callback) {
         return collection.then(result => new Promise((onSuccess, onError) => result.deleteOne(element, (err, result) => {
             if (err) {
-                console.log('Error deleting collection element from Mongo DB');
+                console.log('\nError deleting collection element from Mongo DB');
                 onError(err);
             }
             else
                 onSuccess(result);
         })))
             .then(result => {
-            console.log('Result of deleting collection element: ');
+            console.log('\nResult of deleting collection element: ');
             console.log('Deleted collection elements: ' + result.deletedCount);
+            this.getAllCollectionArray(collection, callback);
         });
     }
     /*
      * Updates specified by filter element in collection
      */
-    updateCollectionElement(element, newOne, collection) {
+    updateCollectionElement(element, newOne, collection, callback) {
         return collection.then(result => new Promise((onSuccess, onError) => {
             result.updateOne(element, { $set: newOne })
                 .then(result => {
-                console.log('Result of updating collection element: ');
-                console.log('Updated collection elemnts: ' + result.modifiedCount);
+                console.log('\nResult of updating collection element: ');
+                console.log('Updated collection elements: ' + result.modifiedCount);
                 if (result.modifiedCount > 0)
                     onSuccess(result);
                 else
                     onError(result);
+                this.getAllCollectionArray(collection, callback);
             })
                 .catch(error => onError(error));
         }));
@@ -311,27 +399,40 @@ class MongoInterface {
     deleteAllCollection(collection) {
         collection.then(result => new Promise((onSuccess, onError) => result.deleteMany({}, (err, result) => {
             if (err) {
-                console.log('Error deleting record from Mongo DB');
+                console.log('Error deleting records from Mongo DB');
                 onError(err);
             }
             else
                 onSuccess(result);
         })));
-        return this.getAllCollectionArray(collection);
+        return collection;
     }
     /*
      * Gets array of all collection elements
      */
-    getAllCollectionArray(collection) {
+    getAllCollectionArray(collection, callback) {
         return collection.then(result => new Promise((onSuccess, onError) => result.find({}) // Retrieve all collection elements
-            .toArray((err, array) => {
+            .toArray((err, arr) => {
             if (err) {
                 console.log('Error retrieving collection from Mongo DB');
                 onError(err);
             }
             else
-                onSuccess(array);
-        })));
+                onSuccess(arr);
+        })))
+            .then(array => callback ? callback(array) : '');
+    }
+    /*
+     * Gets array of fridge contents
+     */
+    getContents() {
+        return contents;
+    }
+    /*
+     * Gets array of recipes
+     */
+    getRecipes() {
+        return recipes;
     }
 }
 exports.MongoInterface = MongoInterface;
